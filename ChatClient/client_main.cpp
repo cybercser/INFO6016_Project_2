@@ -32,7 +32,7 @@ std::string MumboJumbo() {
     return sentence;
 }
 
-void RecvLoop(ChatRoomClient* client) {
+void RecvLoop(ChatClient* client) {
     while (true) {
         client->RecvResponse();
     }
@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
         password = argv[2];
     }
 
-    ChatRoomClient client{"127.0.0.1", DEFAULT_PORT};
+    ChatClient client{"127.0.0.1", DEFAULT_PORT};
 
     std::thread t{RecvLoop, &client};
 

@@ -28,10 +28,10 @@ struct ConnectionInfo {
 };
 
 // the ChatRoom server
-class ChatRoomServer {
+class ChatServer {
 public:
-    explicit ChatRoomServer(uint16 port);
-    ~ChatRoomServer();
+    explicit ChatServer(uint16 port);
+    ~ChatServer();
 
     int RunLoop();
 

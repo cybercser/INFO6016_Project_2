@@ -6,7 +6,7 @@
 
 using namespace network;
 
-ChatRoomClient::ChatRoomClient(const std::string& host, uint16 port) {
+ChatClient::ChatClient(const std::string& host, uint16 port) {
     // init chatroom logic stuff
     m_JoinedRoomMap.clear();
     m_JoinedRoomNames.clear();
@@ -18,7 +18,7 @@ ChatRoomClient::ChatRoomClient(const std::string& host, uint16 port) {
     }
 }
 
-ChatRoomClient::~ChatRoomClient() { Shutdown(); }
+ChatClient::~ChatClient() { Shutdown(); }
 
 // Initialization includes:
 // 1. Initialize Winsock: WSAStartup
@@ -26,7 +26,7 @@ ChatRoomClient::~ChatRoomClient() { Shutdown(); }
 // 3. create socket
 // 4. connect
 // 5. set non-blocking socket
-int ChatRoomClient::Initialize(const std::string& host, uint16 port) {
+int ChatClient::Initialize(const std::string& host, uint16 port) {
     // Decalre adn initialize variables
     int result;
     WSADATA wsaData;
@@ -99,7 +99,7 @@ int ChatRoomClient::Initialize(const std::string& host, uint16 port) {
 }
 
 // Send request to server
-int ChatRoomClient::SendRequest(network::Message* msg) {
+int ChatClient::SendRequest(network::Message* msg) {
     int result = send(m_ConnectSocket, m_SendBuf.ConstData(), msg->header.packetSize, 0);
     if (result == SOCKET_ERROR) {
         printf("send failed with error: %d\n", WSAGetLastError());
@@ -114,7 +114,7 @@ int ChatRoomClient::SendRequest(network::Message* msg) {
 }
 
 // Receive response from server
-int ChatRoomClient::RecvResponse() {
+int ChatClient::RecvResponse() {
     int result = 0;
     // the non-blocking version
     // remember to use ioctlsocket() to set the socket i/o mode first
@@ -177,7 +177,7 @@ int ChatRoomClient::RecvResponse() {
 }
 
 // [send] C2S_LoginReqMsg
-int ChatRoomClient::ReqLogin(const std::string& userName, const std::string& password) {
+int ChatClient::ReqLogin(const std::string& userName, const std::string& password) {
     m_MyUserName = userName;
 
     C2S_LoginReqMsg msg{userName, password};
@@ -187,7 +187,7 @@ int ChatRoomClient::ReqLogin(const std::string& userName, const std::string& pas
 }
 
 // [send] C2S_JoinRoomReqMsg
-int ChatRoomClient::ReqJoinRoom(const std::string& roomName) {
+int ChatClient::ReqJoinRoom(const std::string& roomName) {
     C2S_JoinRoomReqMsg msg{m_MyUserName, roomName};
     msg.Serialize(m_SendBuf);
 
@@ -195,7 +195,7 @@ int ChatRoomClient::ReqJoinRoom(const std::string& roomName) {
 }
 
 // [send] C2S_LeaveRoomReqMsg
-int ChatRoomClient::ReqLeaveRoom(const std::string& roomName) {
+int ChatClient::ReqLeaveRoom(const std::string& roomName) {
     C2S_LeaveRoomReqMsg msg{roomName, m_MyUserName};
     msg.Serialize(m_SendBuf);
 
@@ -203,7 +203,7 @@ int ChatRoomClient::ReqLeaveRoom(const std::string& roomName) {
 }
 
 // [send] C2S_ChatInRoomReqMsg
-int ChatRoomClient::ReqChatInRoom(const std::string& roomName, const std::string chat) {
+int ChatClient::ReqChatInRoom(const std::string& roomName, const std::string chat) {
     C2S_ChatInRoomReqMsg msg{roomName, m_MyUserName, chat};
     msg.Serialize(m_SendBuf);
 
@@ -211,7 +211,7 @@ int ChatRoomClient::ReqChatInRoom(const std::string& roomName, const std::string
 }
 
 // print the rooms
-void ChatRoomClient::PrintRooms(const std::vector<std::string>& roomNames) const {
+void ChatClient::PrintRooms(const std::vector<std::string>& roomNames) const {
     std::cout << "----Rooms----\n";
     for (size_t i = 0; i < roomNames.size(); i++) {
         std::cout << i + 1 << " " << roomNames[i] << std::endl;
@@ -220,7 +220,7 @@ void ChatRoomClient::PrintRooms(const std::vector<std::string>& roomNames) const
 }
 
 // print the users in a room
-void ChatRoomClient::PrintUsersInRoom(const std::string& roomName) const {
+void ChatClient::PrintUsersInRoom(const std::string& roomName) const {
     std::cout << "----Users in #" << roomName << "----\n";
     std::map<std::string, std::set<std::string>>::const_iterator cit = m_JoinedRoomMap.find(roomName);
     if (cit != m_JoinedRoomMap.end()) {
@@ -235,7 +235,7 @@ void ChatRoomClient::PrintUsersInRoom(const std::string& roomName) const {
 }
 
 // Handle received messages
-void ChatRoomClient::HandleMessage(network::MessageType msgType) {
+void ChatClient::HandleMessage(network::MessageType msgType) {
     switch (msgType) {
         // login ACK
         case MessageType::kLOGIN_ACK: {
@@ -400,7 +400,7 @@ void ChatRoomClient::HandleMessage(network::MessageType msgType) {
 // 2. close socket
 // 3. freeaddrinfo
 // 4. WSACleanup
-int ChatRoomClient::Shutdown() {
+int ChatClient::Shutdown() {
     int result = shutdown(m_ConnectSocket, SD_SEND);
     if (result == SOCKET_ERROR) {
         printf("shutdown failed with error: %d\n", WSAGetLastError());

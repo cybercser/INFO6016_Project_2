@@ -18,10 +18,10 @@ enum ClientState {
 };
 
 // the ChatRoom client
-class ChatRoomClient {
+class ChatClient {
 public:
-    ChatRoomClient(const std::string& host, uint16 port);
-    ~ChatRoomClient();
+    ChatClient(const std::string& host, uint16 port);
+    ~ChatClient();
 
     int RecvResponse();
 

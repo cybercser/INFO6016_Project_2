@@ -6,7 +6,7 @@
 
 using namespace network;
 
-ChatRoomServer::ChatRoomServer(uint16 port) {
+ChatServer::ChatServer(uint16 port) {
     // init chatroom logic stuff
     m_RoomNames.push_back("graphics");
     m_RoomNames.push_back("network");
@@ -26,9 +26,9 @@ ChatRoomServer::ChatRoomServer(uint16 port) {
     }
 }
 
-ChatRoomServer::~ChatRoomServer() { Shutdown(); }
+ChatServer::~ChatServer() { Shutdown(); }
 
-int ChatRoomServer::RunLoop() {
+int ChatServer::RunLoop() {
     FD_ZERO(&(m_Conn.activeSockets));  // Initialize the sets
     FD_ZERO(&(m_Conn.socketsReadyForReading));
 
@@ -143,14 +143,14 @@ int ChatRoomServer::RunLoop() {
 }
 
 // [send] S2C_LoginAckMsg
-int ChatRoomServer::AckLogin(ClientInfo& client, MessageStatus status, const std::vector<std::string>& roomNames) {
+int ChatServer::AckLogin(ClientInfo& client, MessageStatus status, const std::vector<std::string>& roomNames) {
     S2C_LoginAckMsg msg{MessageStatus::kSUCCESS, m_RoomNames};
     msg.Serialize(m_SendBuf);
     return SendResponse(client, &msg);
 }
 
 // [send] S2C_JoinRoomAckMsg
-int ChatRoomServer::AckJoinRoom(ClientInfo& client, network::MessageStatus status, const std::string& roomName,
+int ChatServer::AckJoinRoom(ClientInfo& client, network::MessageStatus status, const std::string& roomName,
                                 std::vector<std::string>& userNames) {
     S2C_JoinRoomAckMsg msg{static_cast<uint16>(status), roomName, userNames};
     msg.Serialize(m_SendBuf);
@@ -158,7 +158,7 @@ int ChatRoomServer::AckJoinRoom(ClientInfo& client, network::MessageStatus statu
 }
 
 // [send] S2C_JoinRoomNtfMsg
-int ChatRoomServer::BroadcastJoinRoom(const std::set<std::string>& usersInRoom, const std::string& roomName,
+int ChatServer::BroadcastJoinRoom(const std::set<std::string>& usersInRoom, const std::string& roomName,
                                       const std::string& userName) {
     for (const std::string& name : usersInRoom) {
         if (name != userName) {
@@ -175,7 +175,7 @@ int ChatRoomServer::BroadcastJoinRoom(const std::set<std::string>& usersInRoom, 
 }
 
 // [send] S2C_LeaveRoomAckMsg
-int ChatRoomServer::AckLeaveRoom(ClientInfo& client, network::MessageStatus status, const std::string& roomName,
+int ChatServer::AckLeaveRoom(ClientInfo& client, network::MessageStatus status, const std::string& roomName,
                                  const std::string& userName) {
     S2C_LeaveRoomAckMsg msg{static_cast<uint16>(status), roomName, userName};
     msg.Serialize(m_SendBuf);
@@ -183,7 +183,7 @@ int ChatRoomServer::AckLeaveRoom(ClientInfo& client, network::MessageStatus stat
 }
 
 // [send] S2C_LeaveRoomNtfMsg
-int ChatRoomServer::BroadcastLeaveRoom(const std::set<std::string>& usersInRoom, const std::string& roomName,
+int ChatServer::BroadcastLeaveRoom(const std::set<std::string>& usersInRoom, const std::string& roomName,
                                        const std::string& userName) {
     for (const std::string& name : usersInRoom) {
         std::map<std::string, size_t>::iterator it = m_ClientMap.find(name);
@@ -198,7 +198,7 @@ int ChatRoomServer::BroadcastLeaveRoom(const std::set<std::string>& usersInRoom,
 }
 
 // [send] S2C_ChatInRoomAckMsg
-int ChatRoomServer::AckChatInRoom(ClientInfo& client, network::MessageStatus status, const std::string& roomName,
+int ChatServer::AckChatInRoom(ClientInfo& client, network::MessageStatus status, const std::string& roomName,
                                   const std::string& userName) {
     S2C_ChatInRoomAckMsg msg{MessageStatus::kSUCCESS, roomName, userName};
     msg.Serialize(m_SendBuf);
@@ -206,7 +206,7 @@ int ChatRoomServer::AckChatInRoom(ClientInfo& client, network::MessageStatus sta
 }
 
 // [send] S2C_ChatInRoomNtfMsg
-int ChatRoomServer::BroadcastChatInRoom(const std::set<std::string>& usersInRoom, const std::string& roomName,
+int ChatServer::BroadcastChatInRoom(const std::set<std::string>& usersInRoom, const std::string& roomName,
                                         const std::string& userName, const std::string& chat) {
     for (const std::string& name : usersInRoom) {
         std::map<std::string, size_t>::iterator it = m_ClientMap.find(name);
@@ -226,7 +226,7 @@ int ChatRoomServer::BroadcastChatInRoom(const std::set<std::string>& usersInRoom
 // 3. create socket
 // 4. bind
 // 5. listen
-int ChatRoomServer::Initialize(uint16 port) {
+int ChatServer::Initialize(uint16 port) {
     // Decalre adn initialize variables
     WSADATA wsaData;
     int result;
@@ -301,7 +301,7 @@ int ChatRoomServer::Initialize(uint16 port) {
 }
 
 // Send response to client
-int ChatRoomServer::SendResponse(ClientInfo& client, network::Message* msg) {
+int ChatServer::SendResponse(ClientInfo& client, network::Message* msg) {
     // https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-send
     int sendResult = send(client.socket, m_SendBuf.ConstData(), msg->header.packetSize, 0);
     if (sendResult == SOCKET_ERROR) {
@@ -312,7 +312,7 @@ int ChatRoomServer::SendResponse(ClientInfo& client, network::Message* msg) {
 }
 
 // Shutdown and cleanup
-void ChatRoomServer::Shutdown() {
+void ChatServer::Shutdown() {
     printf("closing ...\n");
     freeaddrinfo(m_Conn.info);
     closesocket(m_Conn.listenSocket);
@@ -320,7 +320,7 @@ void ChatRoomServer::Shutdown() {
 }
 
 // Handle received messages
-void ChatRoomServer::HandleMessage(network::MessageType msgType, ClientInfo& client) {
+void ChatServer::HandleMessage(network::MessageType msgType, ClientInfo& client) {
     switch (msgType) {
         // received C2S_LoginReqMsg
         case MessageType::kLOGIN_REQ: {
