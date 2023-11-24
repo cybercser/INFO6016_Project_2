@@ -109,6 +109,8 @@ std::string Buffer::ReadString(uint32 strLen) {
 
 const char* Buffer::ConstData() { return (const char*)m_Data.data(); }
 
+char* Buffer::Data() { return (char*)m_Data.data(); }
+
 size_t Buffer::Size() const { return m_Data.size(); }
 
 void Buffer::Set(const char* rawBuf, uint32 len) {

@@ -9,7 +9,7 @@ namespace network {
 // A buffer capable of serializing/deserializing uint16, uint32 and string, and
 // grow when serrializing overflows.
 class Buffer {
-   public:
+public:
     Buffer(uint32 size = 512);
     Buffer(const char* rawBuf, uint32 len);
     ~Buffer();
@@ -21,11 +21,12 @@ class Buffer {
     uint16 ReadUInt16LE();
     std::string ReadString(uint32 strLen);
     const char* ConstData();
+    char* Data();
     size_t Size() const;
     void Set(const char* rawBuf, uint32 len);
     void Reset();
 
-   private:
+private:
     void WriteUInt32LE(size_t index, uint32 value);
     void WriteUInt16LE(size_t index, uint16 value);
     void WriteString(size_t index, const std::string& str, uint32 strLen);
@@ -33,7 +34,7 @@ class Buffer {
     uint16 ReadUInt16LE(size_t index);
     std::string ReadString(size_t index, uint32 strLen);
 
-   private:
+private:
     // this stores all of the data within the buffer
     std::vector<uint8> m_Data;
 
