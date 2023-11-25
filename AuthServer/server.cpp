@@ -270,12 +270,7 @@ int AuthServer::AckCreateAccountSuccess(SOCKET clientSocket, uint64_t requestId,
     m_SendBuf.WriteUInt32LE(static_cast<uint32_t>(MessageType::kCREATE_ACCOUNT_WEB_SUCCESS_ACK));
 
     char* payloadHead = m_SendBuf.Data() + headerSize;
-    if (createAccountWebSuccess.SerializeToArray(payloadHead, payloadSize)) {
-        std::cout << "Serialize success" << std::endl;
-    } else {
-        std::cerr << "Serialize failed" << std::endl;
-        return -1;
-    }
+    createAccountWebSuccess.SerializeToArray(payloadHead, payloadSize);
 
     return SendResponse(clientSocket, packetSize);
 }
@@ -294,12 +289,7 @@ int AuthServer::AckCreateAccountFailure(SOCKET clientSocket, uint64_t requestId,
     m_SendBuf.WriteUInt32LE(static_cast<uint32_t>(MessageType::kCREATE_ACCOUNT_WEB_FAILURE_ACK));
 
     char* payloadHead = m_SendBuf.Data() + headerSize;
-    if (createAccountWebFailure.SerializeToArray(payloadHead, payloadSize)) {
-        std::cout << "Serialize success" << std::endl;
-    } else {
-        std::cerr << "Serialize failed" << std::endl;
-        return -1;
-    }
+    createAccountWebFailure.SerializeToArray(payloadHead, payloadSize);
 
     return SendResponse(clientSocket, packetSize);
 }
@@ -318,12 +308,7 @@ int AuthServer::AckAuthenticateSuccess(SOCKET clientSocket, uint64_t requestId, 
     m_SendBuf.WriteUInt32LE(static_cast<uint32_t>(MessageType::kAUTHENTICATE_WEB_SUCCESS_ACK));
 
     char* payloadHead = m_SendBuf.Data() + headerSize;
-    if (authWebSuccess.SerializeToArray(payloadHead, payloadSize)) {
-        std::cout << "Serialize success" << std::endl;
-    } else {
-        std::cerr << "Serialize failed" << std::endl;
-        return -1;
-    }
+    authWebSuccess.SerializeToArray(payloadHead, payloadSize);
 
     return SendResponse(clientSocket, packetSize);
 }
@@ -342,12 +327,7 @@ int AuthServer::AckAuthenticateFailure(SOCKET clientSocket, uint64_t requestId, 
     m_SendBuf.WriteUInt32LE(static_cast<uint32_t>(MessageType::kAUTHENTICATE_WEB_FAILURE_ACK));
 
     char* payloadHead = m_SendBuf.Data() + headerSize;
-    if (authWebFailure.SerializeToArray(payloadHead, payloadSize)) {
-        std::cout << "Serialize success" << std::endl;
-    } else {
-        std::cerr << "Serialize failed" << std::endl;
-        return -1;
-    }
+    authWebFailure.SerializeToArray(payloadHead, payloadSize);
 
     return 0;
 }

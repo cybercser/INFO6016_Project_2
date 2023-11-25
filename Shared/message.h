@@ -6,40 +6,47 @@
 #include "common.h"
 
 namespace network {
-// forward decalaration
+// forward declaration
 class Buffer;
 
 // Naming convention:
 // prefixes:
 // C2S = client to server
 // S2C = server to client
+// S2A = server to AuthServer
+// A2S = AuthServer to server
 //
 // suffixes:
 // Req = request, the client request the server for service
-// Ack = acknowledge, the server responde the client's request
+// Ack = acknowledge, the server respond the client's request
 // Ntf = notify, the server notify the clients
 
 // The message type (protocol unique id)
 enum MessageType {
-    kLOGIN_REQ = 1001,
-    kLOGIN_ACK = 1002,
-    kJOIN_ROOM_REQ = 1003,
-    kJOIN_ROOM_ACK = 1004,
-    kJOIN_ROOM_NTF = 1005,
-    kLEAVE_ROOM_REQ = 1006,
-    kLEAVE_ROOM_ACK = 1007,
-    kLEAVE_ROOM_NTF = 1008,
-    kCHAT_IN_ROOM_REQ = 1009,
-    kCHAT_IN_ROOM_ACK = 1010,
-    kCHAT_IN_ROOM_NTF = 1011,
-    kCREATE_ACCOUNT_REQ = 1012,
-    kCREATE_ACCOUNT_ACK = 1013,
-    kCREATE_ACCOUNT_WEB_REQ = 1014,
-    kCREATE_ACCOUNT_WEB_SUCCESS_ACK = 1015,
-    kCREATE_ACCOUNT_WEB_FAILURE_ACK = 1016,
-    kAUTHENTICATE_WEB_REQ = 1017,
-    kAUTHENTICATE_WEB_SUCCESS_ACK = 1018,
-    kAUTHENTICATE_WEB_FAILURE_ACK = 1019,
+    kCREATE_ACCOUNT_REQ = 1001,             // C2S
+    kCREATE_ACCOUNT_SUCCESS_ACK,            // S2C
+    kCREATE_ACCOUNT_FAILURE_ACK,            // S2C
+    kCREATE_ACCOUNT_WEB_REQ,                // S2A
+    kCREATE_ACCOUNT_WEB_SUCCESS_ACK,        // A2S
+    kCREATE_ACCOUNT_WEB_FAILURE_ACK,        // A2S
+    kAUTHENTICATE_ACCOUNT_REQ,              // C2S
+    kAUTHENTICATE_ACCOUNT_SUCCESS_ACK,      // S2C
+    kAUTHENTICATE_ACCOUNT_FAILURE_ACK,      // S2C
+    kAUTHENTICATE_ACCOUNT_WEB_REQ,          // S2A
+    kAUTHENTICATE_ACCOUNT_WEB_SUCCESS_ACK,  // A2S
+    kAUTHENTICATE_ACCOUNT_WEB_FAILURE_ACK,  // A2S
+    // kLOGIN_REQ,
+    // kLOGIN_ACK,
+    kJOIN_ROOM_REQ,
+    kJOIN_ROOM_ACK,
+    kJOIN_ROOM_NTF,
+    kLEAVE_ROOM_REQ,
+    kLEAVE_ROOM_ACK,
+    kLEAVE_ROOM_NTF,
+    kCHAT_IN_ROOM_REQ,
+    kCHAT_IN_ROOM_ACK,
+    kCHAT_IN_ROOM_NTF,
+
 };
 
 // The message status code
@@ -61,25 +68,54 @@ struct Message {
     virtual void Serialize(Buffer& buf);
 };
 
-// Login req message
-struct C2S_LoginReqMsg : public Message {
-    uint32 userNameLength;
-    std::string userName;
+// CreateAccount req message
+struct C2S_CreateAccountReqMsg : public Message {
+    uint32 emailLength;
+    std::string email;
     uint32 passwordLength;
     std::string password;
 
-    C2S_LoginReqMsg(const std::string& strUserName, const std::string& strPassword);
+    C2S_CreateAccountReqMsg(const std::string& strEmail, const std::string& strPassword);
     void Serialize(Buffer& buf) override;
 };
 
-// Login ack message
-struct S2C_LoginAckMsg : public Message {
-    uint16 loginStatus;
+// CreateAccountSuccess ack message
+struct S2C_CreateAccountSuccessAckMsg : public Message {
+    uint32 emailLength;
+    std::string email;
+    uint64 userId;
+
+    S2C_CreateAccountSuccessAckMsg(const std::string& strEmail, uint64 lUserId);
+    void Serialize(Buffer& buf) override;
+};
+
+// CreateAccountFailure ack message
+struct S2C_CreateAccountFailureAckMsg : public Message {
+    uint16 failureReason;
+    uint32 emailLength;
+    std::string email;
+
+    S2C_CreateAccountFailureAckMsg(uint16 iReason, const std::string& strEmail);
+    void Serialize(Buffer& buf) override;
+};
+
+// AuthenticateAccountSuccess ack message
+struct S2C_AuthenticateAccountSuccessAckMsg : public Message {
     uint32 roomListLength;
     std::vector<uint32> roomNameLengths;
     std::vector<std::string> roomNames;
 
-    S2C_LoginAckMsg(uint16 iStatus, const std::vector<std::string>& vecRoomNames);
+    S2C_AuthenticateAccountSuccessAckMsg(const std::vector<std::string>& vecRoomNames);
+    void Serialize(Buffer& buf) override;
+};
+
+// AuthenticateAccountFailure ack message
+struct S2C_AuthenticateAccountFailureAckMsg : public Message {
+    uint16 failureReason;
+    uint32 emailLength;
+    std::string email;
+
+    S2C_AuthenticateAccountFailureAckMsg(uint16 iReason, const std::string& strEmail);
     void Serialize(Buffer& buf) override;
 };
 

@@ -11,20 +11,20 @@
 #include "buffer.h"
 #include "message.h"
 
-// Client socket info
-struct ClientInfo {
-    SOCKET socket;
-    bool connected;
-};
-
-// All connection related info
-struct ConnectionInfo {
+// ChatClient connection related info
+struct ChatConnectionInfo {
     struct addrinfo* info = nullptr;
     struct addrinfo hints;
     SOCKET listenSocket = INVALID_SOCKET;
     fd_set activeSockets;
-    fd_set socketsReadyForReading;
-    std::vector<ClientInfo> clients;
+    fd_set readfds;
+    std::map<SOCKET, bool> clients;  // (SOCKET, connected)
+};
+
+struct AuthConnectionInfo {
+    struct addrinfo* info = nullptr;
+    struct addrinfo hints;
+    SOCKET authSocket = INVALID_SOCKET;
 };
 
 // the ChatRoom server
@@ -35,30 +35,39 @@ public:
 
     int RunLoop();
 
+    // Requests (to AuthServer)
+    int ReqCreateAccountWeb(SOCKET chatClientSocket, const std::string& email, const std::string& password);
+    int ReqAuthenticateAccountWeb(SOCKET chatClientSocket, const std::string& email, const std::string& password);
+
     // Responses
-    int AckLogin(ClientInfo& client, network::MessageStatus status, const std::vector<std::string>& roomNames);
-    int AckJoinRoom(ClientInfo& client, network::MessageStatus status, const std::string& roomName,
+    int AckCreateAccountSuccess(SOCKET clientSocket, const std::string& email, uint64 userId);
+    int AckCreateAccountFailure(SOCKET clientSocket, uint16 reason, const std::string& email);
+    int AckAuthenticateAccountSuccess(SOCKET clientSocket, const std::vector<std::string>& roomNames);
+    int AckAuthenticateAccountFailure(SOCKET clientSocket, uint16 reason, const std::string& email);
+    int AckJoinRoom(SOCKET clientSocket, network::MessageStatus status, const std::string& roomName,
                     std::vector<std::string>& userNames);
     int BroadcastJoinRoom(const std::set<std::string>& usersInRoom, const std::string& roomName,
                           const std::string& userName);
-    int AckLeaveRoom(ClientInfo& client, network::MessageStatus status, const std::string& roomName,
+    int AckLeaveRoom(SOCKET clientSocket, network::MessageStatus status, const std::string& roomName,
                      const std::string& userName);
     int BroadcastLeaveRoom(const std::set<std::string>& usersInRoom, const std::string& roomName,
                            const std::string& userName);
-    int AckChatInRoom(ClientInfo& client, network::MessageStatus status, const std::string& roomName,
+    int AckChatInRoom(SOCKET clientSocket, network::MessageStatus status, const std::string& roomName,
                       const std::string& userName);
     int BroadcastChatInRoom(const std::set<std::string>& usersInRoom, const std::string& roomName,
                             const std::string& userName, const std::string& chat);
 
 private:
-    int Initialize(uint16 port);
-    int SendResponse(ClientInfo& client, network::Message* msg);
-    void HandleMessage(network::MessageType msgType, ClientInfo& client);
+    int InitChatService(uint16 port);
+    int InitAuthConn(const std::string& ip, uint16 port);
+    int SendMsg(SOCKET socket, uint32 packetSize);  // the name SendMessage is already taken by Windows
+    void HandleMessage(network::MessageType msgType, SOCKET clientSocket);
     void Shutdown();
 
 private:
     // low-level network stuff
-    ConnectionInfo m_Conn;
+    ChatConnectionInfo m_ChatConn;
+    AuthConnectionInfo m_AuthConn;
 
     // send/recv buffer
     static constexpr int kRECV_BUF_SIZE = 512;
@@ -69,7 +78,8 @@ private:
     network::Buffer m_SendBuf{kSEND_BUF_SIZE};
 
     // Server cache
-    std::map<std::string, size_t> m_ClientMap;  // userName (string) -> ClientInfo index in m_Conn.clients
-    std::map<std::string, std::set<std::string>> m_RoomMap;  // roomName (string) -> userNames (set of string)
-    std::vector<std::string> m_RoomNames;                    // all the keys of m_RoomMap
+    std::map<std::string, SOCKET> m_UserName2ClientSocketMap;  // userName (string) -> SOCKET
+    std::map<SOCKET, std::string> m_ClientSocket2UserNameMap;  // SOCKET -> userName (string)
+    std::map<std::string, std::set<std::string>> m_RoomMap;    // roomName (string) -> userNames (set of string)
+    std::vector<std::string> m_RoomNames;                      // all the keys of m_RoomMap
 };

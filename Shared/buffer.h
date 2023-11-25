@@ -6,17 +6,19 @@
 #include <string>
 
 namespace network {
-// A buffer capable of serializing/deserializing uint16, uint32 and string, and
-// grow when serrializing overflows.
+// A buffer capable of serializing/deserializing uint16, uint32, uint64 and string, and
+// grow when serializing overflows.
 class Buffer {
 public:
     Buffer(uint32 size = 512);
     Buffer(const char* rawBuf, uint32 len);
     ~Buffer();
 
+    void WriteUInt64LE(uint64 value);
     void WriteUInt32LE(uint32 value);
     void WriteUInt16LE(uint16 value);
     void WriteString(const std::string& str, uint32 strLen);
+    uint64 ReadUInt64LE();
     uint32 ReadUInt32LE();
     uint16 ReadUInt16LE();
     std::string ReadString(uint32 strLen);
@@ -27,9 +29,11 @@ public:
     void Reset();
 
 private:
+    void WriteUInt64LE(size_t index, uint64 value);
     void WriteUInt32LE(size_t index, uint32 value);
     void WriteUInt16LE(size_t index, uint16 value);
     void WriteString(size_t index, const std::string& str, uint32 strLen);
+    uint64 ReadUInt64LE(size_t index);
     uint32 ReadUInt32LE(size_t index);
     uint16 ReadUInt16LE(size_t index);
     std::string ReadString(size_t index, uint32 strLen);

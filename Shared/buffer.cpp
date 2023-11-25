@@ -9,6 +9,28 @@ Buffer::Buffer(const char* rawBuf, uint32 len) { Set(rawBuf, len); }
 
 Buffer::~Buffer() { m_Data.clear(); }
 
+void Buffer::WriteUInt64LE(uint64 value) {
+    WriteUInt64LE(m_WriteIndex, value);
+    m_WriteIndex += 8;
+}
+
+void Buffer::WriteUInt64LE(size_t index, uint64 value) {
+    // grow when serializing past the write index
+    size_t oldSize = m_Data.size();
+    if (index + sizeof(value) > oldSize) {
+        m_Data.resize(oldSize + kGROW_SIZE);
+    }
+
+    m_Data[index] = value;
+    m_Data[index + 1] = value >> 8;
+    m_Data[index + 2] = value >> 16;
+    m_Data[index + 3] = value >> 24;
+    m_Data[index + 4] = value >> 32;
+    m_Data[index + 5] = value >> 40;
+    m_Data[index + 6] = value >> 48;
+    m_Data[index + 7] = value >> 56;
+}
+
 void Buffer::WriteUInt32LE(size_t index, uint32 value) {
     // grow when serializing past the write index
     size_t oldSize = m_Data.size();
@@ -60,6 +82,27 @@ void Buffer::WriteString(size_t index, const std::string& str, uint32 strLen) {
 void Buffer::WriteString(const std::string& str, uint32 strLen) {
     WriteString(m_WriteIndex, str, strLen);
     m_WriteIndex += str.size();
+}
+
+uint64 Buffer::ReadUInt64LE() {
+    uint64 newValue = ReadUInt64LE(m_ReadIndex);
+    m_ReadIndex += 8;
+
+    return newValue;
+}
+
+uint64 Buffer::ReadUInt64LE(size_t index) {
+    uint64 newValue = 0;
+    newValue |= m_Data[index];
+    newValue |= m_Data[index + 1] << 8;
+    newValue |= m_Data[index + 2] << 16;
+    newValue |= m_Data[index + 3] << 24;
+    newValue |= m_Data[index + 4] << 32;
+    newValue |= m_Data[index + 5] << 40;
+    newValue |= m_Data[index + 6] << 48;
+    newValue |= m_Data[index + 7] << 56;
+
+    return newValue;
 }
 
 uint32 Buffer::ReadUInt32LE(size_t index) {
