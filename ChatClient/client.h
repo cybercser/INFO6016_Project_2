@@ -14,7 +14,7 @@
 // the client state
 enum ClientState {
     kOFFLINE,  // offline (initial state)
-    kONLINE,   // online (loged in server)
+    kONLINE,   // online (logged in server)
 };
 
 // the ChatRoom client
@@ -26,7 +26,8 @@ public:
     int RecvResponse();
 
     // Requests
-    int ReqLogin(const std::string& userName, const std::string& password);
+    int ReqCreateAccount(const std::string& userName, const std::string& password);
+    int ReqAuthAccount(const std::string& userName, const std::string& password);
     int ReqJoinRoom(const std::string& roomName);
     int ReqLeaveRoom(const std::string& roomName);
     int ReqChatInRoom(const std::string& roomName, const std::string chat);
@@ -58,7 +59,7 @@ private:
 
     // logic variables
     ClientState m_ClientState = ClientState::kOFFLINE;
-    std::string m_MyUserName;
+    std::string m_MyUserName;                 // userName and email are the same, we will use them interchangeably
     std::set<std::string> m_JoinedRoomNames;  // rooms already joined
     std::map<std::string, std::set<std::string>>
         m_JoinedRoomMap;  // roomName (string) -> userNames (set of string), only joined rooms

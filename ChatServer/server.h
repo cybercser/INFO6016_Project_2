@@ -42,7 +42,8 @@ public:
     // Responses
     int AckCreateAccountSuccess(SOCKET clientSocket, const std::string& email, uint64 userId);
     int AckCreateAccountFailure(SOCKET clientSocket, uint16 reason, const std::string& email);
-    int AckAuthenticateAccountSuccess(SOCKET clientSocket, const std::vector<std::string>& roomNames);
+    int AckAuthenticateAccountSuccess(SOCKET clientSocket, const std::string& email,
+                                      const std::vector<std::string>& roomNames);
     int AckAuthenticateAccountFailure(SOCKET clientSocket, uint16 reason, const std::string& email);
     int AckJoinRoom(SOCKET clientSocket, network::MessageStatus status, const std::string& roomName,
                     std::vector<std::string>& userNames);

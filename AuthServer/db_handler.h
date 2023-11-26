@@ -3,6 +3,7 @@
 #include <map>
 
 #include "mysqlutil.h"
+#include "message.h"
 
 enum class StatementType {
     kCREATE_USER_WEB_AUTH = 0,        // create user in web_auth table (create user, store email + password)
@@ -10,19 +11,6 @@ enum class StatementType {
     kCREATE_USER_USER = 2,            // create user in user table
     kREAD_USER_MAX_ID_USER = 3,       // read user max id from user table
     kUPDATE_USER_LAST_LOGIN_UER = 4,  // update user in user table (update last_login)
-};
-
-enum class CreateAccountFailureReason {
-    kSUCCESS = 0,
-    kACCOUNT_ALREADY_EXISTS = -1,
-    kINVALID_PASSWORD = -2,
-    kINTERNAL_SERVER_ERROR = -3,
-};
-
-enum class AuthenticateFailureReason {
-    kSUCCESS = 0,
-    kINVALID_CREDENTIALS = -1,
-    kINTERNAL_SERVER_ERROR = -2,
 };
 
 class DBHandler {
@@ -35,10 +23,11 @@ public:
     //--------------------
     // Service Logic
     //--------------------
-    CreateAccountFailureReason CreateAccount(const std::string& email, const std::string& plaintextPassword,
-                                             uint64_t& outUserId);
-    AuthenticateFailureReason Authenticate(const std::string& email, const std::string& plaintextPassword,
-                                           uint64_t& outUserId);
+    network::CreateAccountFailureReason CreateAccount(const std::string& email, const std::string& plaintextPassword,
+                                                      uint64_t& outUserId);
+    network::AuthenticateAccountFailureReason AuthenticateAccount(const std::string& email,
+                                                                  const std::string& plaintextPassword,
+                                                                  uint64_t& outUserId);
 
 private:
     //--------------------

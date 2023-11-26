@@ -47,7 +47,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT CreateAccountWebSuccessDefaultT
 constexpr CreateAccountWebFailure::CreateAccountWebFailure(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : requestid_(int64_t{0})
-  , reason_(0)
+  , reason_(1)
 {}
 struct CreateAccountWebFailureDefaultTypeInternal {
   constexpr CreateAccountWebFailureDefaultTypeInternal()
@@ -89,7 +89,7 @@ PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT AuthenticateWebSuccessDefaultTy
 constexpr AuthenticateWebFailure::AuthenticateWebFailure(
   ::PROTOBUF_NAMESPACE_ID::internal::ConstantInitialized)
   : requestid_(int64_t{0})
-  , reason_(0)
+  , reason_(1)
 {}
 struct AuthenticateWebFailureDefaultTypeInternal {
   constexpr AuthenticateWebFailureDefaultTypeInternal()
@@ -199,17 +199,17 @@ const char descriptor_table_protodef_auth_2eproto[] PROTOBUF_SECTION_VARIABLE(pr
   "\003\"\307\001\n\027CreateAccountWebFailure\022\021\n\trequest"
   "Id\030\001 \001(\003\022;\n\006reason\030\002 \001(\0162+.auth.CreateAc"
   "countWebFailure.FailureReason\"\\\n\rFailure"
-  "Reason\022\032\n\026ACCOUNT_ALREADY_EXISTS\020\000\022\024\n\020IN"
-  "VALID_PASSWORD\020\001\022\031\n\025INTERNAL_SERVER_ERRO"
-  "R\020\002\"N\n\017AuthenticateWeb\022\021\n\trequestId\030\001 \001("
+  "Reason\022\032\n\026ACCOUNT_ALREADY_EXISTS\020\001\022\024\n\020IN"
+  "VALID_PASSWORD\020\002\022\031\n\025INTERNAL_SERVER_ERRO"
+  "R\020\003\"N\n\017AuthenticateWeb\022\021\n\trequestId\030\001 \001("
   "\003\022\r\n\005email\030\002 \001(\t\022\031\n\021plaintextPassword\030\003 "
   "\001(\t\"Q\n\026AuthenticateWebSuccess\022\021\n\trequest"
   "Id\030\001 \001(\003\022\016\n\006userId\030\002 \001(\003\022\024\n\014creationDate"
   "\030\003 \001(\t\"\254\001\n\026AuthenticateWebFailure\022\021\n\treq"
   "uestId\030\001 \001(\003\022:\n\006reason\030\002 \001(\0162*.auth.Auth"
   "enticateWebFailure.FailureReason\"C\n\rFail"
-  "ureReason\022\027\n\023INVALID_CREDENTIALS\020\000\022\031\n\025IN"
-  "TERNAL_SERVER_ERROR\020\001"
+  "ureReason\022\027\n\023INVALID_CREDENTIALS\020\001\022\031\n\025IN"
+  "TERNAL_SERVER_ERROR\020\002"
   ;
 static ::PROTOBUF_NAMESPACE_ID::internal::once_flag descriptor_table_auth_2eproto_once;
 const ::PROTOBUF_NAMESPACE_ID::internal::DescriptorTable descriptor_table_auth_2eproto = {
@@ -231,9 +231,9 @@ const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* CreateAccountWebFailure_FailureRe
 }
 bool CreateAccountWebFailure_FailureReason_IsValid(int value) {
   switch (value) {
-    case 0:
     case 1:
     case 2:
+    case 3:
       return true;
     default:
       return false;
@@ -254,8 +254,8 @@ const ::PROTOBUF_NAMESPACE_ID::EnumDescriptor* AuthenticateWebFailure_FailureRea
 }
 bool AuthenticateWebFailure_FailureReason_IsValid(int value) {
   switch (value) {
-    case 0:
     case 1:
+    case 2:
       return true;
     default:
       return false;
@@ -841,10 +841,8 @@ CreateAccountWebFailure::CreateAccountWebFailure(const CreateAccountWebFailure& 
 }
 
 void CreateAccountWebFailure::SharedCtor() {
-::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
-    reinterpret_cast<char*>(&requestid_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&reason_) -
-    reinterpret_cast<char*>(&requestid_)) + sizeof(reason_));
+requestid_ = int64_t{0};
+reason_ = 1;
 }
 
 CreateAccountWebFailure::~CreateAccountWebFailure() {
@@ -876,9 +874,8 @@ void CreateAccountWebFailure::Clear() {
 
   cached_has_bits = _has_bits_[0];
   if (cached_has_bits & 0x00000003u) {
-    ::memset(&requestid_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&reason_) -
-        reinterpret_cast<char*>(&requestid_)) + sizeof(reason_));
+    requestid_ = int64_t{0};
+    reason_ = 1;
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
@@ -1037,12 +1034,8 @@ void CreateAccountWebFailure::InternalSwap(CreateAccountWebFailure* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_has_bits_[0], other->_has_bits_[0]);
-  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(CreateAccountWebFailure, reason_)
-      + sizeof(CreateAccountWebFailure::reason_)
-      - PROTOBUF_FIELD_OFFSET(CreateAccountWebFailure, requestid_)>(
-          reinterpret_cast<char*>(&requestid_),
-          reinterpret_cast<char*>(&other->requestid_));
+  swap(requestid_, other->requestid_);
+  swap(reason_, other->reason_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata CreateAccountWebFailure::GetMetadata() const {
@@ -1674,10 +1667,8 @@ AuthenticateWebFailure::AuthenticateWebFailure(const AuthenticateWebFailure& fro
 }
 
 void AuthenticateWebFailure::SharedCtor() {
-::memset(reinterpret_cast<char*>(this) + static_cast<size_t>(
-    reinterpret_cast<char*>(&requestid_) - reinterpret_cast<char*>(this)),
-    0, static_cast<size_t>(reinterpret_cast<char*>(&reason_) -
-    reinterpret_cast<char*>(&requestid_)) + sizeof(reason_));
+requestid_ = int64_t{0};
+reason_ = 1;
 }
 
 AuthenticateWebFailure::~AuthenticateWebFailure() {
@@ -1709,9 +1700,8 @@ void AuthenticateWebFailure::Clear() {
 
   cached_has_bits = _has_bits_[0];
   if (cached_has_bits & 0x00000003u) {
-    ::memset(&requestid_, 0, static_cast<size_t>(
-        reinterpret_cast<char*>(&reason_) -
-        reinterpret_cast<char*>(&requestid_)) + sizeof(reason_));
+    requestid_ = int64_t{0};
+    reason_ = 1;
   }
   _has_bits_.Clear();
   _internal_metadata_.Clear<::PROTOBUF_NAMESPACE_ID::UnknownFieldSet>();
@@ -1870,12 +1860,8 @@ void AuthenticateWebFailure::InternalSwap(AuthenticateWebFailure* other) {
   using std::swap;
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   swap(_has_bits_[0], other->_has_bits_[0]);
-  ::PROTOBUF_NAMESPACE_ID::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(AuthenticateWebFailure, reason_)
-      + sizeof(AuthenticateWebFailure::reason_)
-      - PROTOBUF_FIELD_OFFSET(AuthenticateWebFailure, requestid_)>(
-          reinterpret_cast<char*>(&requestid_),
-          reinterpret_cast<char*>(&other->requestid_));
+  swap(requestid_, other->requestid_);
+  swap(reason_, other->reason_);
 }
 
 ::PROTOBUF_NAMESPACE_ID::Metadata AuthenticateWebFailure::GetMetadata() const {

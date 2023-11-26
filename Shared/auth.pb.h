@@ -85,9 +85,9 @@ PROTOBUF_NAMESPACE_CLOSE
 namespace auth {
 
 enum CreateAccountWebFailure_FailureReason : int {
-  CreateAccountWebFailure_FailureReason_ACCOUNT_ALREADY_EXISTS = 0,
-  CreateAccountWebFailure_FailureReason_INVALID_PASSWORD = 1,
-  CreateAccountWebFailure_FailureReason_INTERNAL_SERVER_ERROR = 2
+  CreateAccountWebFailure_FailureReason_ACCOUNT_ALREADY_EXISTS = 1,
+  CreateAccountWebFailure_FailureReason_INVALID_PASSWORD = 2,
+  CreateAccountWebFailure_FailureReason_INTERNAL_SERVER_ERROR = 3
 };
 bool CreateAccountWebFailure_FailureReason_IsValid(int value);
 constexpr CreateAccountWebFailure_FailureReason CreateAccountWebFailure_FailureReason_FailureReason_MIN = CreateAccountWebFailure_FailureReason_ACCOUNT_ALREADY_EXISTS;
@@ -109,8 +109,8 @@ inline bool CreateAccountWebFailure_FailureReason_Parse(
     CreateAccountWebFailure_FailureReason_descriptor(), name, value);
 }
 enum AuthenticateWebFailure_FailureReason : int {
-  AuthenticateWebFailure_FailureReason_INVALID_CREDENTIALS = 0,
-  AuthenticateWebFailure_FailureReason_INTERNAL_SERVER_ERROR = 1
+  AuthenticateWebFailure_FailureReason_INVALID_CREDENTIALS = 1,
+  AuthenticateWebFailure_FailureReason_INTERNAL_SERVER_ERROR = 2
 };
 bool AuthenticateWebFailure_FailureReason_IsValid(int value);
 constexpr AuthenticateWebFailure_FailureReason AuthenticateWebFailure_FailureReason_FailureReason_MIN = AuthenticateWebFailure_FailureReason_INVALID_CREDENTIALS;
@@ -1539,7 +1539,7 @@ inline bool CreateAccountWebFailure::has_reason() const {
   return _internal_has_reason();
 }
 inline void CreateAccountWebFailure::clear_reason() {
-  reason_ = 0;
+  reason_ = 1;
   _has_bits_[0] &= ~0x00000002u;
 }
 inline ::auth::CreateAccountWebFailure_FailureReason CreateAccountWebFailure::_internal_reason() const {
@@ -1866,7 +1866,7 @@ inline bool AuthenticateWebFailure::has_reason() const {
   return _internal_has_reason();
 }
 inline void AuthenticateWebFailure::clear_reason() {
-  reason_ = 0;
+  reason_ = 1;
   _has_bits_[0] &= ~0x00000002u;
 }
 inline ::auth::AuthenticateWebFailure_FailureReason AuthenticateWebFailure::_internal_reason() const {

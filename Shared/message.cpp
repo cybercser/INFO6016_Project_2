@@ -69,9 +69,31 @@ void S2C_CreateAccountFailureAckMsg::Serialize(Buffer& buf) {
     buf.WriteString(email, emailLength);
 }
 
+C2S_AuthenticateAccountReqMsg::C2S_AuthenticateAccountReqMsg(const std::string& strEmail,
+                                                             const std::string& strPassword)
+    : email(strEmail), password(strPassword) {
+    emailLength = strEmail.size();
+    passwordLength = strPassword.size();
+    header.messageType = MessageType::kAUTHENTICATE_ACCOUNT_REQ;
+    header.packetSize = sizeof(PacketHeader);
+    header.packetSize += sizeof(emailLength) + emailLength;
+    header.packetSize += sizeof(passwordLength) + passwordLength;
+}
+
+void C2S_AuthenticateAccountReqMsg::Serialize(Buffer& buf) {
+    Message::Serialize(buf);
+
+    buf.WriteUInt32LE(emailLength);
+    buf.WriteString(email, emailLength);
+    buf.WriteUInt32LE(passwordLength);
+    buf.WriteString(password, passwordLength);
+}
+
 // AuthenticcateAccountSuccess ack message
-S2C_AuthenticateAccountSuccessAckMsg::S2C_AuthenticateAccountSuccessAckMsg(
-    const std::vector<std::string>& vecRoomNames) {
+S2C_AuthenticateAccountSuccessAckMsg::S2C_AuthenticateAccountSuccessAckMsg(const std::string& strEmail,
+                                                                           const std::vector<std::string>& vecRoomNames)
+    : email(strEmail) {
+    emailLength = strEmail.size();
     roomListLength = vecRoomNames.size();
     for (const std::string& roomName : vecRoomNames) {
         roomNameLengths.push_back(roomName.size());
@@ -80,6 +102,7 @@ S2C_AuthenticateAccountSuccessAckMsg::S2C_AuthenticateAccountSuccessAckMsg(
 
     header.messageType = MessageType::kAUTHENTICATE_ACCOUNT_SUCCESS_ACK;
     header.packetSize = sizeof(PacketHeader);
+    header.packetSize += sizeof(emailLength) + emailLength;
     header.packetSize += sizeof(roomListLength);
     header.packetSize += sizeof(uint32_t) * roomNameLengths.size();
     for (uint32_t len : roomNameLengths) {
@@ -90,6 +113,8 @@ S2C_AuthenticateAccountSuccessAckMsg::S2C_AuthenticateAccountSuccessAckMsg(
 void S2C_AuthenticateAccountSuccessAckMsg::Serialize(Buffer& buf) {
     Message::Serialize(buf);
 
+    buf.WriteUInt32LE(emailLength);
+    buf.WriteString(email, emailLength);
     buf.WriteUInt32LE(roomListLength);
     for (size_t i = 0; i < roomListLength; i++) {
         buf.WriteUInt32LE(roomNameLengths[i]);
@@ -99,6 +124,7 @@ void S2C_AuthenticateAccountSuccessAckMsg::Serialize(Buffer& buf) {
     }
 }
 
+// AuthenticateAccountFailure ack message
 S2C_AuthenticateAccountFailureAckMsg::S2C_AuthenticateAccountFailureAckMsg(uint16 iReason, const std::string& strEmail)
     : failureReason(iReason), email(strEmail) {
     emailLength = email.size();

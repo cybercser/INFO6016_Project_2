@@ -29,17 +29,17 @@ public:
     int RunLoop();
 
     // Responses
-    int AckCreateAccountSuccess(SOCKET clientSocket, uint64_t requestId, uint64_t userId);
-    int AckCreateAccountFailure(SOCKET clientSocket, uint64_t requestId, CreateAccountFailureReason reason);
-    int AckAuthenticateSuccess(SOCKET clientSocket, uint64_t requestId, uint64_t userId);
-    int AckAuthenticateFailure(SOCKET clientSocket, uint64_t requestId, AuthenticateFailureReason reason);
+    int AckCreateAccountWebSuccess(SOCKET sock, uint64_t requestId, uint64_t userId);
+    int AckCreateAccountWebFailure(SOCKET sock, uint64_t requestId, network::CreateAccountFailureReason reason);
+    int AckAuthenticateWebSuccess(SOCKET sock, uint64_t requestId, uint64_t userId);
+    int AckAuthenticateWebFailure(SOCKET sock, uint64_t requestId, network::AuthenticateAccountFailureReason reason);
 
 private:
     int Initialize(uint16 port);
-    int SendResponse(SOCKET clientSocket, uint32 packetSize);
-    void HandleMessage(network::MessageType msgType, SOCKET clientSocket, uint32_t msgBytesSize);
-    void HandleAuthenticateWebReq(const void* payloadHead, uint32_t payloadSize, SOCKET clientSocket);
-    void HandleCreateAccountWebReq(const void* payloadHead, uint32_t payloadSize, SOCKET clientSocket);
+    int SendResponse(SOCKET sock, uint32 packetSize);
+    void HandleMessage(network::MessageType msgType, SOCKET sock, uint32_t msgBytesSize);
+    void HandleAuthenticateWebReq(const void* payloadHead, uint32_t payloadSize, SOCKET sock);
+    void HandleCreateAccountWebReq(const void* payloadHead, uint32_t payloadSize, SOCKET sock);
     void Shutdown();
 
 private:

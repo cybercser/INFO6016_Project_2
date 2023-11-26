@@ -56,6 +56,21 @@ enum MessageStatus {
     kERROR = 500,
 };
 
+// must match the protobuf enum definition
+enum class CreateAccountFailureReason {
+    kSUCCESS = 0,
+    kACCOUNT_ALREADY_EXISTS = 1,
+    kINVALID_PASSWORD = 2,
+    kINTERNAL_SERVER_ERROR = 3,
+};
+
+// must match the protobuf enum definition
+enum class AuthenticateAccountFailureReason {
+    kSUCCESS = 0,
+    kINVALID_CREDENTIALS = 1,
+    kINTERNAL_SERVER_ERROR = 2,
+};
+
 // The fixed-length packet header
 struct PacketHeader {
     uint32 packetSize;
@@ -99,13 +114,26 @@ struct S2C_CreateAccountFailureAckMsg : public Message {
     void Serialize(Buffer& buf) override;
 };
 
+// AuthenticateAccount req message
+struct C2S_AuthenticateAccountReqMsg : public Message {
+    uint32 emailLength;
+    std::string email;
+    uint32 passwordLength;
+    std::string password;
+
+    C2S_AuthenticateAccountReqMsg(const std::string& strEmail, const std::string& strPassword);
+    void Serialize(Buffer& buf) override;
+};
+
 // AuthenticateAccountSuccess ack message
 struct S2C_AuthenticateAccountSuccessAckMsg : public Message {
+    uint32 emailLength;
+    std::string email;
     uint32 roomListLength;
     std::vector<uint32> roomNameLengths;
     std::vector<std::string> roomNames;
 
-    S2C_AuthenticateAccountSuccessAckMsg(const std::vector<std::string>& vecRoomNames);
+    S2C_AuthenticateAccountSuccessAckMsg(const std::string& strEmail, const std::vector<std::string>& vecRoomNames);
     void Serialize(Buffer& buf) override;
 };
 

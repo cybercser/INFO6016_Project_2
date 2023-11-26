@@ -6,6 +6,17 @@
 
 using namespace network;
 
+namespace {
+std::map<CreateAccountFailureReason, std::string> AuthenticateWebFailureMap = {
+    {CreateAccountFailureReason::kACCOUNT_ALREADY_EXISTS, "Account already exists."},
+    {CreateAccountFailureReason::kINVALID_PASSWORD, "Invalid password."},
+    {CreateAccountFailureReason::kINTERNAL_SERVER_ERROR, "Internal server error."}};
+
+std::map<AuthenticateAccountFailureReason, std::string> AuthenticateAccountFailureMap = {
+    {AuthenticateAccountFailureReason::kINVALID_CREDENTIALS, "Invalid credentials."},
+    {AuthenticateAccountFailureReason::kINTERNAL_SERVER_ERROR, "Internal server error."}};
+}  // namespace
+
 ChatClient::ChatClient(const std::string& host, uint16 port) {
     // init chatroom logic stuff
     m_JoinedRoomMap.clear();
@@ -115,50 +126,51 @@ int ChatClient::SendRequest(network::Message* msg) {
 
 // Receive response from server
 int ChatClient::RecvResponse() {
-    int result = 0;
     // the non-blocking version
     // remember to use ioctlsocket() to set the socket i/o mode first
-    bool tryAgain = true;
-    while (tryAgain) {
-        ZeroMemory(m_RawRecvBuf, kRECV_BUF_SIZE);
-        result = recv(m_ConnectSocket, m_RawRecvBuf, kRECV_BUF_SIZE, 0);
-        // Expected result values:
-        // 0 = closed connection, disconnection
-        // >0 = number of bytes received
-        // -1 = SOCKET_ERROR
-        //
-        // NonBlocking recv, it will immediately return
-        // result will be -1
-        if (result == SOCKET_ERROR) {
-            if (WSAGetLastError() == WSAEWOULDBLOCK) {
-                // printf("WouldBlock!\n");
-                tryAgain = true;
-            } else {
-                printf("recv failed with error: %d\n", WSAGetLastError());
-                closesocket(m_ConnectSocket);
-                WSACleanup();
-                return result;
-            }
+
+    ZeroMemory(m_RawRecvBuf, kRECV_BUF_SIZE);
+    int bytesReceived = recv(m_ConnectSocket, m_RawRecvBuf, kRECV_BUF_SIZE, 0);
+    // Expected bytesReceived values:
+    // 0 = closed connection, disconnection
+    // >0 = number of bytes received
+    // -1 = SOCKET_ERROR
+    //
+    // NonBlocking recv, it will immediately return
+    // bytesReceived will be -1
+    if (bytesReceived == SOCKET_ERROR) {
+        int error = WSAGetLastError();
+        if (error == WSAEWOULDBLOCK) {
+            // printf("WouldBlock!\n");             // No data to receive
+            return 0;
         } else {
-            m_RecvBuf.Set(m_RawRecvBuf, kRECV_BUF_SIZE);
-            uint32_t packetSize = m_RecvBuf.ReadUInt32LE();
-            MessageType messageType = static_cast<MessageType>(m_RecvBuf.ReadUInt32LE());
-
-            printf("\trecv msg %d (%d bytes) from the server!\n", messageType, result);
-
-            if (m_RecvBuf.Size() >= packetSize) {
-                HandleMessage(messageType);
-            }
-
-            tryAgain = false;
+            printf("recv failed with error: %d\n", WSAGetLastError());
+            closesocket(m_ConnectSocket);
+            WSACleanup();
+            return bytesReceived;
         }
+    } else if (bytesReceived == 0) {
+        // The server closed the connection
+        printf("Server closed connection\n");
+        return 0;
     }
+
+    m_RecvBuf.Set(m_RawRecvBuf, kRECV_BUF_SIZE);
+    uint32_t packetSize = m_RecvBuf.ReadUInt32LE();
+    MessageType messageType = static_cast<MessageType>(m_RecvBuf.ReadUInt32LE());
+
+    printf("\trecv msg %d (%d bytes) from the server!\n", messageType, bytesReceived);
+
+    if (m_RecvBuf.Size() >= packetSize) {
+        HandleMessage(messageType);
+    }
+
     // the blocking version
     // Receive until the peer closes the connection
     // do {
-    //    result = recv(m_ConnectSocket, m_RawRecvBuf, kRECV_BUF_SIZE, 0);
-    //    if (result > 0) {
-    //        printf("received: %d bytes\n", result);
+    //    bytesReceived = recv(m_ConnectSocket, m_RawRecvBuf, kRECV_BUF_SIZE, 0);
+    //    if (bytesReceived > 0) {
+    //        printf("received: %d bytes\n", bytesReceived);
     //        Buffer m_RecvBuf{m_RawRecvBuf, kRECV_BUF_SIZE};
     //        uint32_t packetSize = m_RecvBuf.ReadUInt32LE();
     //        MessageType messageType = static_cast<MessageType>(m_RecvBuf.ReadUInt32LE());
@@ -166,21 +178,30 @@ int ChatClient::RecvResponse() {
     //        if (m_RecvBuf.Size() >= packetSize) {
     //            HandleMessage(messageType);
     //        }
-    //    } else if (result == 0) {
+    //    } else if (bytesReceived == 0) {
     //        printf("Connection closed\n");
     //    } else {
     //        printf("recv failed with error: %d\n", WSAGetLastError());
     //    }
 
-    //} while (result > 0);
-    return result;
+    //} while (bytesReceived > 0);
+    return bytesReceived;
 }
 
-// [send] C2S_LoginReqMsg
-int ChatClient::ReqLogin(const std::string& userName, const std::string& password) {
+int ChatClient::ReqCreateAccount(const std::string& userName, const std::string& password) {
     m_MyUserName = userName;
 
-    C2S_LoginReqMsg msg{userName, password};
+    C2S_CreateAccountReqMsg msg{userName, password};
+    msg.Serialize(m_SendBuf);
+
+    return SendRequest(&msg);
+}
+
+// [send] C2S_AuthenticateAccountReqMsg
+int ChatClient::ReqAuthAccount(const std::string& userName, const std::string& password) {
+    m_MyUserName = userName;
+
+    C2S_AuthenticateAccountReqMsg msg{userName, password};
     msg.Serialize(m_SendBuf);
 
     return SendRequest(&msg);
@@ -237,27 +258,57 @@ void ChatClient::PrintUsersInRoom(const std::string& roomName) const {
 // Handle received messages
 void ChatClient::HandleMessage(network::MessageType msgType) {
     switch (msgType) {
-        // login ACK
-        case MessageType::kLOGIN_ACK: {
-            uint16 status = m_RecvBuf.ReadUInt16LE();
-            if (status == MessageStatus::kSUCCESS) {
-                uint32 roomListLength = m_RecvBuf.ReadUInt32LE();
-                std::vector<uint32> roomNameLengths;
-                for (size_t i = 0; i < roomListLength; i++) {
-                    roomNameLengths.push_back(m_RecvBuf.ReadUInt32LE());
-                }
+        // auth ACK
+        case MessageType::kCREATE_ACCOUNT_SUCCESS_ACK: {
+            // S2C_CreateAccountSuccessAckMsg
+            uint32 userNameLength = m_RecvBuf.ReadUInt32LE();
+            std::string userName = m_RecvBuf.ReadString(userNameLength);
+            uint64 userId = m_RecvBuf.ReadUInt64LE();
+            m_ClientState = ClientState::kONLINE;
+            printf("create account OK, user id: %llu\n", userId);
+        } break;
 
-                std::vector<std::string> roomNames;
-                for (size_t i = 0; i < roomListLength; i++) {
-                    std::string roomName = m_RecvBuf.ReadString(roomNameLengths[i]);
-                    roomNames.push_back(roomName);
-                }
+        case MessageType::kCREATE_ACCOUNT_FAILURE_ACK: {
+            // S2C_CreateAccountFailureAckMsg
+            uint16 failureReason = m_RecvBuf.ReadUInt16LE();
+            uint32 userNameLength = m_RecvBuf.ReadUInt32LE();
+            std::string userName = m_RecvBuf.ReadString(userNameLength);
 
-                PrintRooms(roomNames);
-            } else {
-                m_ClientState = ClientState::kOFFLINE;
-                printf("loign failed, status: %d\n", status);
+            m_ClientState = ClientState::kOFFLINE;
+            std::string reason = AuthenticateWebFailureMap[static_cast<CreateAccountFailureReason>(failureReason)];
+            printf("auth failed for %s, reason: %s\n", userName.c_str(), reason.c_str());
+        } break;
+
+        case MessageType::kAUTHENTICATE_ACCOUNT_SUCCESS_ACK: {
+            // S2C_AuthenticateAccountSuccessAckMsg
+            uint32 userNameLength = m_RecvBuf.ReadUInt32LE();
+            std::string userName = m_RecvBuf.ReadString(userNameLength);
+
+            uint32 roomListLength = m_RecvBuf.ReadUInt32LE();
+            std::vector<uint32> roomNameLengths;
+            for (size_t i = 0; i < roomListLength; i++) {
+                roomNameLengths.push_back(m_RecvBuf.ReadUInt32LE());
             }
+
+            std::vector<std::string> roomNames;
+            for (size_t i = 0; i < roomListLength; i++) {
+                std::string roomName = m_RecvBuf.ReadString(roomNameLengths[i]);
+                roomNames.push_back(roomName);
+            }
+            printf("auth OK for %s\n", userName.c_str());
+            PrintRooms(roomNames);
+        } break;
+
+        case MessageType::kAUTHENTICATE_ACCOUNT_FAILURE_ACK: {
+            // S2C_AuthenticateAccountFailureAckMsg
+            uint16 failureReason = m_RecvBuf.ReadUInt16LE();
+            uint32 userNameLength = m_RecvBuf.ReadUInt32LE();
+            std::string userName = m_RecvBuf.ReadString(userNameLength);
+
+            m_ClientState = ClientState::kOFFLINE;
+            std::string reason =
+                AuthenticateAccountFailureMap[static_cast<AuthenticateAccountFailureReason>(failureReason)];
+            printf("auth failed for %s, reason: %s\n", userName.c_str(), reason.c_str());
         } break;
 
         // join room ACK

@@ -149,6 +149,7 @@
   <ItemGroup>
     <ClInclude Include="..\Shared\auth.pb.h" />
     <ClInclude Include="..\Shared\buffer.h" />
+    <ClInclude Include="..\Shared\message.h" />
     <ClInclude Include="db_handler.h" />
     <ClInclude Include="mysqlutil.h" />
     <ClInclude Include="server.h" />

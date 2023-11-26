@@ -126,14 +126,14 @@ int AuthServer::RunLoop() {
             SOCKET sock = copy.fd_array[i];
             if (sock == m_Conn.listenSocket) {  // It's an incoming new connection
                 // [Accept]
-                SOCKET clientSocket = accept(m_Conn.listenSocket, NULL, NULL);
-                if (clientSocket == INVALID_SOCKET) {
+                SOCKET sock = accept(m_Conn.listenSocket, NULL, NULL);
+                if (sock == INVALID_SOCKET) {
                     fprintf(stderr, "accept failed with error: %d\n", WSAGetLastError());
                 } else {
                     printf("accept OK!\n");
-                    FD_SET(clientSocket, &m_Conn.readfds);
+                    FD_SET(sock, &m_Conn.readfds);
 
-                    m_Conn.clients.insert({clientSocket, true});
+                    m_Conn.clients.insert({sock, true});
                 }
             } else {  // It's an incoming message
                 ZeroMemory(&m_RawRecvBuf, kRECV_BUF_SIZE);
@@ -185,19 +185,19 @@ int AuthServer::RunLoop() {
 }
 
 // Handle received messages
-void AuthServer::HandleMessage(network::MessageType msgType, SOCKET clientSocket, uint32_t payloadSize) {
+void AuthServer::HandleMessage(network::MessageType msgType, SOCKET sock, uint32_t payloadSize) {
     uint32_t offset = sizeof(uint32_t) * 2;  // packet header = packetSize(uint32_t) + messageType(uint32_t)
     const void* payloadHead = static_cast<const void*>(m_RecvBuf.ConstData() + offset);
 
     switch (msgType) {
         // received auth::CreateAccountWeb
         case MessageType::kCREATE_ACCOUNT_WEB_REQ: {
-            HandleCreateAccountWebReq(payloadHead, payloadSize, clientSocket);
+            HandleCreateAccountWebReq(payloadHead, payloadSize, sock);
         } break;
 
         // received auth::AuthenticateWeb
-        case MessageType::kAUTHENTICATE_WEB_REQ: {
-            HandleAuthenticateWebReq(payloadHead, payloadSize, clientSocket);
+        case MessageType::kAUTHENTICATE_ACCOUNT_WEB_REQ: {
+            HandleAuthenticateWebReq(payloadHead, payloadSize, sock);
         } break;
 
         default:
@@ -206,7 +206,7 @@ void AuthServer::HandleMessage(network::MessageType msgType, SOCKET clientSocket
     }
 }
 
-void AuthServer::HandleCreateAccountWebReq(const void* payloadHead, uint32_t payloadSize, SOCKET clientSocket) {
+void AuthServer::HandleCreateAccountWebReq(const void* payloadHead, uint32_t payloadSize, SOCKET sock) {
     auth::CreateAccountWeb createAccountWebReq;
     createAccountWebReq.ParseFromArray(payloadHead, payloadSize);
 
@@ -218,12 +218,14 @@ void AuthServer::HandleCreateAccountWebReq(const void* payloadHead, uint32_t pay
     CreateAccountFailureReason reason = dbHandler.CreateAccount(email, password, userId);
     switch (reason) {
         case CreateAccountFailureReason::kSUCCESS: {
-            AckCreateAccountSuccess(clientSocket, requestId, userId);
+            printf("CreateAccount success for %lld, %s\n", requestId, email.c_str());
+            AckCreateAccountWebSuccess(sock, requestId, userId);
         } break;
         case CreateAccountFailureReason::kACCOUNT_ALREADY_EXISTS:
         case CreateAccountFailureReason::kINVALID_PASSWORD:
         case CreateAccountFailureReason::kINTERNAL_SERVER_ERROR: {
-            AckCreateAccountFailure(clientSocket, requestId, reason);
+            printf("CreateAccount failure for %lld, %s, reason %d\n", requestId, email.c_str(), reason);
+            AckCreateAccountWebFailure(sock, requestId, reason);
         } break;
         default:
             std::cerr << "Unknown CreateAccountWeb error" << std::endl;
@@ -231,7 +233,7 @@ void AuthServer::HandleCreateAccountWebReq(const void* payloadHead, uint32_t pay
     }
 }
 
-void AuthServer::HandleAuthenticateWebReq(const void* payloadHead, uint32_t payloadSize, SOCKET clientSocket) {
+void AuthServer::HandleAuthenticateWebReq(const void* payloadHead, uint32_t payloadSize, SOCKET sock) {
     auth::AuthenticateWeb authWebReq;
     authWebReq.ParseFromArray(payloadHead, payloadSize);
 
@@ -240,15 +242,16 @@ void AuthServer::HandleAuthenticateWebReq(const void* payloadHead, uint32_t payl
     std::string password = authWebReq.plaintextpassword();
 
     uint64_t userId{0};
-    AuthenticateFailureReason reason = dbHandler.Authenticate("cybercser@gmail.com", "passwd1337", userId);
+    network::AuthenticateAccountFailureReason reason = dbHandler.AuthenticateAccount(email, password, userId);
     switch (reason) {
-        case AuthenticateFailureReason::kSUCCESS: {
-            std::cout << "Authenticate success" << std::endl;
-            AckAuthenticateSuccess(clientSocket, requestId, userId);
+        case network::AuthenticateAccountFailureReason::kSUCCESS: {
+            printf("Authenticate success for %lld, %s\n", sock, email.c_str());
+            AckAuthenticateWebSuccess(sock, requestId, userId);
         } break;
-        case AuthenticateFailureReason::kINVALID_CREDENTIALS:
-        case AuthenticateFailureReason::kINTERNAL_SERVER_ERROR: {
-            AckAuthenticateFailure(clientSocket, requestId, reason);
+        case network::AuthenticateAccountFailureReason::kINVALID_CREDENTIALS:
+        case network::AuthenticateAccountFailureReason::kINTERNAL_SERVER_ERROR: {
+            printf("Authenticate failure for %lld, %s, reason %d\n", requestId, email.c_str(), reason);
+            AckAuthenticateWebFailure(sock, requestId, reason);
         } break;
         default:
             std::cerr << "Unknown AuthenticateWeb error" << std::endl;
@@ -256,7 +259,7 @@ void AuthServer::HandleAuthenticateWebReq(const void* payloadHead, uint32_t payl
     }
 }
 
-int AuthServer::AckCreateAccountSuccess(SOCKET clientSocket, uint64_t requestId, uint64_t userId) {
+int AuthServer::AckCreateAccountWebSuccess(SOCKET sock, uint64_t requestId, uint64_t userId) {
     auth::CreateAccountWebSuccess createAccountWebSuccess;
     createAccountWebSuccess.set_requestid(requestId);
     createAccountWebSuccess.set_userid(userId);
@@ -272,10 +275,11 @@ int AuthServer::AckCreateAccountSuccess(SOCKET clientSocket, uint64_t requestId,
     char* payloadHead = m_SendBuf.Data() + headerSize;
     createAccountWebSuccess.SerializeToArray(payloadHead, payloadSize);
 
-    return SendResponse(clientSocket, packetSize);
+    return SendResponse(sock, packetSize);
 }
 
-int AuthServer::AckCreateAccountFailure(SOCKET clientSocket, uint64_t requestId, CreateAccountFailureReason reason) {
+int AuthServer::AckCreateAccountWebFailure(SOCKET sock, uint64_t requestId,
+                                           network::CreateAccountFailureReason reason) {
     auth::CreateAccountWebFailure createAccountWebFailure;
     createAccountWebFailure.set_requestid(requestId);
     createAccountWebFailure.set_reason(static_cast<auth::CreateAccountWebFailure_FailureReason>(reason));
@@ -291,10 +295,10 @@ int AuthServer::AckCreateAccountFailure(SOCKET clientSocket, uint64_t requestId,
     char* payloadHead = m_SendBuf.Data() + headerSize;
     createAccountWebFailure.SerializeToArray(payloadHead, payloadSize);
 
-    return SendResponse(clientSocket, packetSize);
+    return SendResponse(sock, packetSize);
 }
 
-int AuthServer::AckAuthenticateSuccess(SOCKET clientSocket, uint64_t requestId, uint64_t userId) {
+int AuthServer::AckAuthenticateWebSuccess(SOCKET sock, uint64_t requestId, uint64_t userId) {
     auth::AuthenticateWebSuccess authWebSuccess;
     authWebSuccess.set_requestid(requestId);
     authWebSuccess.set_userid(userId);
@@ -305,15 +309,16 @@ int AuthServer::AckAuthenticateSuccess(SOCKET clientSocket, uint64_t requestId, 
     uint32_t payloadSize = authWebSuccess.ByteSizeLong();
     uint32_t packetSize = headerSize + payloadSize;
     m_SendBuf.WriteUInt32LE(packetSize);
-    m_SendBuf.WriteUInt32LE(static_cast<uint32_t>(MessageType::kAUTHENTICATE_WEB_SUCCESS_ACK));
+    m_SendBuf.WriteUInt32LE(static_cast<uint32_t>(MessageType::kAUTHENTICATE_ACCOUNT_WEB_SUCCESS_ACK));
 
     char* payloadHead = m_SendBuf.Data() + headerSize;
     authWebSuccess.SerializeToArray(payloadHead, payloadSize);
 
-    return SendResponse(clientSocket, packetSize);
+    return SendResponse(sock, packetSize);
 }
 
-int AuthServer::AckAuthenticateFailure(SOCKET clientSocket, uint64_t requestId, AuthenticateFailureReason reason) {
+int AuthServer::AckAuthenticateWebFailure(SOCKET sock, uint64_t requestId,
+                                          network::AuthenticateAccountFailureReason reason) {
     auth::AuthenticateWebFailure authWebFailure;
     authWebFailure.set_requestid(requestId);
     authWebFailure.set_reason(static_cast<auth::AuthenticateWebFailure_FailureReason>(reason));
@@ -324,18 +329,18 @@ int AuthServer::AckAuthenticateFailure(SOCKET clientSocket, uint64_t requestId, 
     uint32_t payloadSize = authWebFailure.ByteSizeLong();
     uint32_t packetSize = headerSize + payloadSize;
     m_SendBuf.WriteUInt32LE(packetSize);
-    m_SendBuf.WriteUInt32LE(static_cast<uint32_t>(MessageType::kAUTHENTICATE_WEB_FAILURE_ACK));
+    m_SendBuf.WriteUInt32LE(static_cast<uint32_t>(MessageType::kAUTHENTICATE_ACCOUNT_WEB_FAILURE_ACK));
 
     char* payloadHead = m_SendBuf.Data() + headerSize;
     authWebFailure.SerializeToArray(payloadHead, payloadSize);
 
-    return 0;
+    return SendResponse(sock, packetSize);
 }
 
 // Send response to client
-int AuthServer::SendResponse(SOCKET clientSocket, uint32 packetSize) {
+int AuthServer::SendResponse(SOCKET sock, uint32 packetSize) {
     // https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-send
-    int sendResult = send(clientSocket, m_SendBuf.ConstData(), packetSize, 0);
+    int sendResult = send(sock, m_SendBuf.ConstData(), packetSize, 0);
     if (sendResult == SOCKET_ERROR) {
         fprintf(stderr, "send failed with error %d\n", WSAGetLastError());
         WSACleanup();

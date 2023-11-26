@@ -169,6 +169,7 @@ int ChatServer::RunLoop() {
 
     FD_ZERO(&m_ChatConn.readfds);
     FD_SET(m_ChatConn.listenSocket, &m_ChatConn.readfds);
+    FD_SET(m_AuthConn.authSocket, &m_ChatConn.readfds);
 
     // select work here
     while (true) {
@@ -224,7 +225,7 @@ int ChatServer::RunLoop() {
                     closesocket(sock);
                     FD_CLR(sock, &m_ChatConn.readfds);
                 } else {
-                    printf("recv %d bytes from client.\n", recvResult);
+                    // printf("recv %d bytes from client.\n", recvResult);
 
                     m_RecvBuf.Set(m_RawRecvBuf, kRECV_BUF_SIZE);
                     uint32 packetSize = m_RecvBuf.ReadUInt32LE();
@@ -259,7 +260,7 @@ void ChatServer::HandleMessage(network::MessageType msgType, SOCKET socket) {
             m_UserName2ClientSocketMap[email] = socket;
             m_ClientSocket2UserNameMap[socket] = email;
 
-            printf("try creating account...\n");
+            printf("try creating account for %s...\n", email.c_str());
             ReqCreateAccountWeb(socket, email, password);
         } break;
 
@@ -299,6 +300,11 @@ void ChatServer::HandleMessage(network::MessageType msgType, SOCKET socket) {
             uint32 passwordLength = m_RecvBuf.ReadUInt32LE();
             std::string password = m_RecvBuf.ReadString(passwordLength);
 
+            // record the socket
+            m_UserName2ClientSocketMap[email] = socket;
+            m_ClientSocket2UserNameMap[socket] = email;
+
+            printf("try authenticating account for %s...\n", email.c_str());
             ReqAuthenticateAccountWeb(socket, email, password);
         } break;
 
@@ -312,8 +318,7 @@ void ChatServer::HandleMessage(network::MessageType msgType, SOCKET socket) {
             if (it != m_ClientSocket2UserNameMap.end()) {
                 std::string email = it->second;
                 printf("'%s' has authenticated.\n", email.c_str());
-
-                AckAuthenticateAccountSuccess(requestId, m_RoomNames);
+                AckAuthenticateAccountSuccess(requestId, email, m_RoomNames);
             } else {
                 printf("unknown socket: %llu.\n", requestId);
             }
@@ -484,8 +489,9 @@ int ChatServer::AckCreateAccountFailure(SOCKET clientSocket, uint16 reason, cons
 }
 
 // [send] S2C_AuthenticateAccountSuccessAckMsg
-int ChatServer::AckAuthenticateAccountSuccess(SOCKET clientSocket, const std::vector<std::string>& roomNames) {
-    S2C_AuthenticateAccountSuccessAckMsg msg{roomNames};
+int ChatServer::AckAuthenticateAccountSuccess(SOCKET clientSocket, const std::string& email,
+                                              const std::vector<std::string>& roomNames) {
+    S2C_AuthenticateAccountSuccessAckMsg msg{email, roomNames};
     msg.Serialize(m_SendBuf);
     return SendMsg(clientSocket, msg.header.packetSize);
 }

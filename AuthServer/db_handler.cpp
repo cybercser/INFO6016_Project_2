@@ -182,11 +182,12 @@ std::string DBHandler::GenerateRandomString(size_t length) {
  *         - kACCOUNT_ALREADY_EXISTS: An account with the provided email already exists.
  *         - kINTERNAL_SERVER_ERROR: An internal server error occurred.
  */
-CreateAccountFailureReason DBHandler::CreateAccount(const std::string& email, const std::string& plaintextPassword,
-                                                    uint64_t& outUserId) {
+network::CreateAccountFailureReason DBHandler::CreateAccount(const std::string& email,
+                                                             const std::string& plaintextPassword,
+                                                             uint64_t& outUserId) {
     // 1. Check if password is valid
     if (plaintextPassword.length() < 8) {
-        return CreateAccountFailureReason::kINVALID_PASSWORD;
+        return network::CreateAccountFailureReason::kINVALID_PASSWORD;
     }
     // 2. Search if user exists in web_auth table
     std::string salt{""};
@@ -194,7 +195,7 @@ CreateAccountFailureReason DBHandler::CreateAccount(const std::string& email, co
     bool userExists = ReadUserInWebAuth(email, salt, hashedPassword, outUserId);
     // 3. If user exists, return false
     if (userExists) {
-        return CreateAccountFailureReason::kACCOUNT_ALREADY_EXISTS;
+        return network::CreateAccountFailureReason::kACCOUNT_ALREADY_EXISTS;
     }
     // 4. If user does not exist, create user in user table then in web_auth table
     std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
@@ -211,7 +212,7 @@ CreateAccountFailureReason DBHandler::CreateAccount(const std::string& email, co
     if (result > 0) {
         outUserId = ReadUserMaxIdInUser();
         if (outUserId == 0) {
-            return CreateAccountFailureReason::kINTERNAL_SERVER_ERROR;
+            return network::CreateAccountFailureReason::kINTERNAL_SERVER_ERROR;
         }
         // add salt to password
         salt = GenerateRandomString(4);
@@ -219,7 +220,7 @@ CreateAccountFailureReason DBHandler::CreateAccount(const std::string& email, co
 
         result = CreateUserInWebAuth(email.c_str(), salt.c_str(), hashedPassword.c_str(), std::to_string(outUserId));
     }
-    return CreateAccountFailureReason::kSUCCESS;
+    return network::CreateAccountFailureReason::kSUCCESS;
 }
 
 /**
@@ -233,11 +234,12 @@ CreateAccountFailureReason DBHandler::CreateAccount(const std::string& email, co
  *         - kINVALID_CREDENTIALS: Invalid email or password.
  *         - kINTERNAL_SERVER_ERROR: An internal server error occurred.
  */
-AuthenticateFailureReason DBHandler::Authenticate(const std::string& email, const std::string& plaintextPassword,
-                                                  uint64_t& outUserId) {
+network::AuthenticateAccountFailureReason DBHandler::AuthenticateAccount(const std::string& email,
+                                                                         const std::string& plaintextPassword,
+                                                                         uint64_t& outUserId) {
     // 1. Check if password is valid
     if (plaintextPassword.length() < 8) {
-        return AuthenticateFailureReason::kINVALID_CREDENTIALS;
+        return network::AuthenticateAccountFailureReason::kINVALID_CREDENTIALS;
     }
     // 2. Search if user exists in web_auth table
     std::string salt{""};
@@ -245,13 +247,13 @@ AuthenticateFailureReason DBHandler::Authenticate(const std::string& email, cons
     bool userExists = ReadUserInWebAuth(email, salt, hashedPassword, outUserId);
     // 3. If user does not exist, return false
     if (!userExists) {
-        return AuthenticateFailureReason::kINVALID_CREDENTIALS;
+        return network::AuthenticateAccountFailureReason::kINVALID_CREDENTIALS;
     }
     // 4. If user exists, compare password
     bool valid = bcrypt::validatePassword(plaintextPassword + salt, hashedPassword);
     if (!valid) {
-        return AuthenticateFailureReason::kINVALID_CREDENTIALS;
+        return network::AuthenticateAccountFailureReason::kINVALID_CREDENTIALS;
     }
 
-    return AuthenticateFailureReason::kSUCCESS;
+    return network::AuthenticateAccountFailureReason::kSUCCESS;
 }
