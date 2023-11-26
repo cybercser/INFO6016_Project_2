@@ -38,7 +38,7 @@ ChatClient::~ChatClient() { Shutdown(); }
 // 4. connect
 // 5. set non-blocking socket
 int ChatClient::Initialize(const std::string& host, uint16 port) {
-    // Decalre adn initialize variables
+    // Declare and initialize variables
     int result;
     WSADATA wsaData;
     m_ConnectSocket = INVALID_SOCKET;

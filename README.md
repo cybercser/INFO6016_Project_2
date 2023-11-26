@@ -1,26 +1,34 @@
-# INFO6016_Project_1 ChatRoom
+# INFO6016_Project_2: Authentication Service
 
-## Build and Run
-1. Open the `INFO6016_Project_1.sln` solution file with Visual Studio.
+## Overview
 
-2. Build the `ChatRoomClient` and `ChatRoomServer` projects using the "Release x64" configuration.
+This project demonstrates a simple chat room application. It includes features such as account creation and authentication.
 
-3. Go to `x64/Release` in the project directory and start the server instance by running `ChatRoomServer.exe`.
+## Getting Started
 
-4. Go to `x64/Release` again and start a client instance (Client A) by running `ChatRoomClient.exe Alice 1234`. Here, 'Alice' is the username, and '1234' is the password. Note that user authentication is not currently implemented; it's for demonstration purposes.
+### Database Setup
 
-5. Go to `x64/Release` once more and start another client instance (Client B) by running `ChatRoomClient.exe Bob 1234`.
+1. Ensure a MySQL database instance is running at `127.0.0.1:3306`. The auth server will connect to this database with the username 'root' and password 'root'.
+2. Import the database by executing `chat_user.sql` and `chat_web_auth.sql`.
 
-6. Press the Enter key in each client instance (A and B) to proceed through the demonstration steps.
+### Building the Project
+
+1. Open the `INFO6016_Project_2.sln` solution file with Visual Studio.
+2. Build the `ChatClient`, `ChatServer`, and `AuthServer` projects using the "Release x64" configuration.
+
+### Running the Application
+
+1. Navigate to the `x64/Release` directory in the project folder.
+2. Start the auth server by running `AuthServer.exe`. The auth server will connect to the MySQL database running at `127.0.0.1:3306` using the username 'root' and password 'root'. It runs at `127.0.0.1:5556` and must be started first to allow the chat server to connect to it.
+3. In the same directory, start the chat server by running `ChatServer.exe`. The chat server will automatically connect to the auth server and runs at `127.0.0.1:5555`.
+4. Start a client by running `ChatClient.exe alice@gmail.com 123456789`. Here, 'alice@gmail.com' is the email (username), and '123456789' is the password. Note: The password length must be at least 8 characters.
+5. Execute the test steps defined in `client_main.cpp` by pressing the number keys 0-5.
 
 ## Features
 
-The following features are demonstrated in the project:
+This project demonstrates the following features:
 
-- Joining and leaving a room.
-- Joining multiple rooms.
-- Sending messages to a room.
+- Account creation with validation. Errors are shown for invalid passwords (less than 8 characters) and existing accounts.
+- Account authentication with error handling for invalid passwords and non-existent accounts.
 
-Please pay attention to how the ChatRoom handles the broadcasting of actions such as joining a room, leaving a room, and sending messages within the room.
-
-![Alt text](images/chatroom_demo.png)
+For a visual demonstration of these features, please refer to `video.mp4`.
