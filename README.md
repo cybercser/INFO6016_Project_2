@@ -22,7 +22,7 @@ This project demonstrates a simple chat room application. It includes features s
 2. Start the auth server by running `AuthServer.exe`. The auth server will connect to the MySQL database running at `127.0.0.1:3306` using the username 'root' and password 'root'. It runs at `127.0.0.1:5556` and must be started first to allow the chat server to connect to it.
 3. In the same directory, start the chat server by running `ChatServer.exe`. The chat server will automatically connect to the auth server and runs at `127.0.0.1:5555`.
 4. Start a client by running `ChatClient.exe alice@gmail.com 123456789`. Here, 'alice@gmail.com' is the email (username), and '123456789' is the password. Note: The password length must be at least 8 characters.
-5. Execute the test steps defined in `client_main.cpp` by pressing the number keys 0-5.
+5. Execute the test steps defined in `client_main.cpp` by pressing the number keys 0 and 1. Press '0' to create account, '1' to authenticate account.
 
 ## Features
 
